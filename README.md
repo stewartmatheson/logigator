@@ -1,6 +1,6 @@
 #Logigator
 
-_Log aggregation with teeth_ 
+_"Log aggregation with teeth"_ 
 
 Logigator is real-time log aggregator for distributed systems. Logigator takes “unix flavor” system and application logs and renders them in the browser for easy reading. Logodile replaces the need to have console windows open with “tail -f”.
 
