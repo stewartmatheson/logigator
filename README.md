@@ -1,4 +1,4 @@
-#Logodile
+#Logigator
 Log aggregation with teeth
 Logodile is real-time log aggregator for distributed systems. Logodile takes “unix flavor” system and application logs and renders them in the browser for easy reading. Logodile replaces the need to have console windows open with “tail -f”.
 
