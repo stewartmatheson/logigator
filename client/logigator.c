@@ -35,7 +35,7 @@ int watcher_count() {
 } 
 
 int init_watcher (lgat_watcher **buf, char *path, int fileDescriptor) {
-    int watchDescriptor = inotify_add_watch( fileDescriptor, path, IN_MODIFY | IN_ONESHOT );
+    int watchDescriptor = inotify_add_watch( fileDescriptor, path, IN_MODIFY );
     if (watchDescriptor < 0) {
         perror( "open file" );
         return -1;
@@ -110,7 +110,7 @@ int main (int argc, char **argv) {
             struct inotify_event *event = ( struct inotify_event * ) &buffer[ i ];     
 
             // filter only by the modify event
-            if ( event->mask & IN_MODIFY | IN_ONESHOT) {
+            if ( event->mask & IN_MODIFY) {
                 if (i == 0) { // only fire the write event once 
                     // now lets check the watchers and work out what watcher fired
                     for (j = 0; j < watcherCount; j++) {
