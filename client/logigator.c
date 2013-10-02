@@ -12,8 +12,28 @@
 typedef struct lgat_watcher {
     char *path;
     int watchDescriptor;
+    int lineNumber;
 } lgat_watcher;
 
+// Call back to the server once we know we have log changes to report
+void call_home(lgat_watcher *changed_watcher) {
+        
+}
+
+// Called if any of the watched files have changed. This is where 
+// we should handle multi line logs and non descreet writes
+void on_file_change(lgat_watcher *changed_watcher) {
+    int current_line_count = lineCount(changed_watcher->path);
+
+    printf("%s %i\n", changed_watcher->path, changed_watcher->lineNumber);
+
+    if (current_line_count == changed_watcher->lineNumber + 1)
+        call_home(changed_watcher);
+
+    changed_watcher->lineNumber = lineCount(changed_watcher->path);
+}
+
+// How many watches the client is currently concernred with
 int watcher_count() {
     int watcherCounter = 0;
     FILE * filePointer;
@@ -34,6 +54,28 @@ int watcher_count() {
     return watcherCounter;
 } 
 
+// Count how many lines are in a given file
+int lineCount(char *path) {
+    int lines = 0;
+    FILE * filePointer;
+    int c;
+
+    filePointer = fopen(path, "r");
+    if (filePointer == NULL) {
+        printf("Can't open: %s\n", path);
+        exit(1);
+    }
+    // seems liek the best way to count lines
+    while ( EOF != (c = fgetc(filePointer)) ) {
+        if ( c == '\n' )
+            ++lines;
+    }
+
+    close(filePointer);
+    return lines;
+} 
+
+// Create a new watcher.
 int init_watcher (lgat_watcher **buf, char *path, int fileDescriptor) {
     int watchDescriptor = inotify_add_watch( fileDescriptor, path, IN_MODIFY );
     if (watchDescriptor < 0) {
@@ -43,14 +85,16 @@ int init_watcher (lgat_watcher **buf, char *path, int fileDescriptor) {
 
     (*buf)->path = strdup(path);
     (*buf)->watchDescriptor = watchDescriptor;
+    (*buf)->lineNumber = lineCount(path);
     return 0;
 }
 
+// Free an old watcher. Not used: cant see a use
 void destroy_lgat_watcher (lgat_watcher w, int fileDescriptor) {
     ( void ) inotify_rm_watch( fileDescriptor, w.watchDescriptor );
 }
 
-
+// Load the configruation and then create all watchers 
 void create_watchers_from_configuration(lgat_watcher *buffer[], int fileDescriptor) {
     int i = 0;
     FILE * filePointer;
@@ -81,7 +125,7 @@ void create_watchers_from_configuration(lgat_watcher *buffer[], int fileDescript
 }
 
 int main (int argc, char **argv) { 
-    int length, i = 0, j = 0, k = 0,  watcherCount = watcher_count();
+    int length = 0, i = 0, j = 0, k = 0,  watcherCount = watcher_count();
     int fileDescriptor;
     char buffer[BUF_LEN];
     fileDescriptor = inotify_init();
@@ -115,7 +159,7 @@ int main (int argc, char **argv) {
                     // now lets check the watchers and work out what watcher fired
                     for (j = 0; j < watcherCount; j++) {
                         if (watchers[j]->watchDescriptor == event->wd) { 
-                            printf("%s\n", watchers[j]->path);
+                            on_file_change(watchers[j]);
                         }
                     }
                 }
