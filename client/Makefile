@@ -1,3 +1,5 @@
+CFLAGS=-Wall -g
+
 all:
 		make logigator
 
