@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 #include <linux/types.h>
-#include <linux/inotify.h>
+#include <sys/inotify.h>
 
 
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
@@ -14,6 +15,8 @@ typedef struct lgat_watcher {
     int watchDescriptor;
     int lineNumber;
 } lgat_watcher;
+
+int lineCount(char*);
 
 // Call back to the server once we know we have log changes to report
 void call_home(lgat_watcher *changed_watcher) {
@@ -44,13 +47,13 @@ int watcher_count() {
         printf("Can't open configuration file\n");
         exit(1);
     }
-    // seems liek the best way to count lines
+    // seems like the best way to count lines
     while ( EOF != (c = fgetc(filePointer)) ) {
         if ( c == '\n' )
             ++watcherCounter;
     }
 
-    close(filePointer);
+    fclose(filePointer);
     return watcherCounter;
 } 
 
@@ -65,13 +68,13 @@ int lineCount(char *path) {
         printf("Can't open: %s\n", path);
         exit(1);
     }
-    // seems liek the best way to count lines
+    // seems like the best way to count lines
     while ( EOF != (c = fgetc(filePointer)) ) {
         if ( c == '\n' )
             ++lines;
     }
 
-    close(filePointer);
+    fclose(filePointer);
     return lines;
 } 
 
@@ -121,7 +124,7 @@ void create_watchers_from_configuration(lgat_watcher *buffer[], int fileDescript
         }
         ++i;
     }
-    close(filePointer);
+    fclose(filePointer);
 }
 
 int main (int argc, char **argv) { 
