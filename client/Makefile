@@ -1,7 +1,7 @@
 CFLAGS=-Wall -g
 
 all:
-		make logigator
+		gcc -o logigator logigator.c -lzmq
 
 clean:
-		rm -rf *o logigator
+		rm hrf *o logigator

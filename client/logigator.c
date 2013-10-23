@@ -1,3 +1,5 @@
+#include <zmq.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -5,7 +7,7 @@
 #include <unistd.h>
 #include <linux/types.h>
 #include <sys/inotify.h>
-
+#include <assert.h>
 
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
@@ -20,19 +22,34 @@ int lineCount(char*);
 
 // Call back to the server once we know we have log changes to report
 void call_home(lgat_watcher *changed_watcher) {
-        
+    printf("%s %i\n", changed_watcher->path, changed_watcher->lineNumber);
+
+    // init zmq
+    void *context = zmq_ctx_new ();
+    void *requester = zmq_socket (context, ZMQ_REQ);
+    if (!requester) {
+        printf("ZMQ Socket creation failed: %s\n", zmq_strerror(errno));
+    }
+
+    int result = zmq_connect(requester, "tcp://127.0.0.1:5565"); 
+    if(result != 0) {
+        printf("ZMQ Connect Failed: %s\n", zmq_strerror(errno));
+    }
+
+    int sendResult = zmq_send(requester, "Hello", 5, ZMQ_DONTWAIT);
+    if(sendResult != 0) {
+        printf("ZMQ Send Failed: %s\n", zmq_strerror(errno));
+    }
+
+    zmq_close (requester);
+    zmq_ctx_destroy (context);
 }
 
 // Called if any of the watched files have changed. This is where 
 // we should handle multi line logs and non descreet writes
 void on_file_change(lgat_watcher *changed_watcher) {
     int current_line_count = lineCount(changed_watcher->path);
-
-    printf("%s %i\n", changed_watcher->path, changed_watcher->lineNumber);
-
-    if (current_line_count == changed_watcher->lineNumber + 1)
-        call_home(changed_watcher);
-
+    call_home(changed_watcher);
     changed_watcher->lineNumber = lineCount(changed_watcher->path);
 }
 
@@ -104,7 +121,6 @@ void create_watchers_from_configuration(lgat_watcher *buffer[], int fileDescript
     char * line = NULL;
     size_t len = 0;
     ssize_t read;
-    int success = 0;
 
     filePointer = fopen("/etc/logigator.conf", "r");
     if (filePointer == NULL) {
@@ -132,6 +148,7 @@ int main (int argc, char **argv) {
     int fileDescriptor;
     char buffer[BUF_LEN];
     fileDescriptor = inotify_init();
+
     if (fileDescriptor < 0)  {
         perror( "open file" );
         return 1;
@@ -171,6 +188,7 @@ int main (int argc, char **argv) {
         }
     } 
     
+    //clean up
     ( void ) close( fileDescriptor );
     return 0;
 } 

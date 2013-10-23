@@ -36,3 +36,8 @@ Logigator is a real-time log aggregator for distributed systems. Logigator takes
  * Has a cool logo and looks good in a screen shot on github
  * Responsive design
 
+## Development Requirements
+ * ZMQ
+ * node.js
+ * coffee-script
+ * gcc
